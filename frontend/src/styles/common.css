@@ -114,3 +114,29 @@ body {
   flex-wrap: wrap;
   align-items: center;
 }
+
+.prayer-points-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
+}
+
+.member-card {
+  background-color: #f9f9f9;
+}
+
+.member-card:hover {
+  background-color: #f0f0f0;
+}

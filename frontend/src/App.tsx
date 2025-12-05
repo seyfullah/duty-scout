@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import Groups from './components/Groups';
 import Members from './components/Members';
 import GroupMembers from './components/GroupMembers';
+import PrayerPoints from './components/PrayerPoints';
 import './styles/app.css';
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<'groups' | 'members' | 'groupMembers'>('groups');
+  const [currentPage, setCurrentPage] = useState<'groups' | 'members' | 'groupMembers' | 'prayerPoints'>('groups');
 
   return (
     <div className="app-container">
@@ -31,6 +32,12 @@ const App: React.FC = () => {
             >
               Tüm Üyeler
             </button>
+            <button
+              className={`navbar-button ${currentPage === 'prayerPoints' ? 'active' : ''}`}
+              onClick={() => setCurrentPage('prayerPoints')}
+            >
+              Namaz Puanları
+            </button>
           </div>
         </div>
       </nav>
@@ -39,6 +46,7 @@ const App: React.FC = () => {
         {currentPage === 'groups' && <Groups />}
         {currentPage === 'groupMembers' && <GroupMembers />}
         {currentPage === 'members' && <Members />}
+        {currentPage === 'prayerPoints' && <PrayerPoints />}
       </div>
     </div>
   );

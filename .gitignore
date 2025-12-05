@@ -56,7 +56,7 @@ nunit-*.xml
 # Node modules
 node_modules/
 frontend/node_modules/
-my-dotnet-react-app/frontend/node_modules/
+duty-scout/frontend/node_modules/
 
 # .NET build outputs
 **/bin/

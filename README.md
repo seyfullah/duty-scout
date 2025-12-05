@@ -5,7 +5,7 @@ This project is a full-stack application that combines a .NET backend with a Rea
 ## Project Structure
 
 ```
-my-dotnet-react-app
+duty-scout
 ├── backend
 │   ├── Controllers
 │   │   └── WeatherForecastController.cs
@@ -13,7 +13,7 @@ my-dotnet-react-app
 │   │   └── WeatherForecast.cs
 │   ├── Program.cs
 │   ├── Startup.cs
-│   └── my-dotnet-react-app.csproj
+│   └── duty-scout.csproj
 ├── frontend
 │   ├── public
 │   │   └── index.html

@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>my_dotnet_react_app</RootNamespace>
-    <AssemblyName>my-dotnet-react-app</AssemblyName>
+    <RootNamespace>duty_scout</RootNamespace>
+    <AssemblyName>duty-scout</AssemblyName>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
