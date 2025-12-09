@@ -1,4 +1,11 @@
 <?php
+$prayer_points = [
+    'sabah' => 5,
+    'ogle' => 3,
+    'ikindi' => 3,
+    'aksam' => 3,
+    'yatsi' => 4
+];
 session_start();
 require 'includes/db.php';
 
@@ -11,12 +18,12 @@ $user_id = $_SESSION['user_id'];
 $month_start = date('Y-m-01');
 $month_end = date('Y-m-t');
 
-// Tüm ayın verilerini çek (her gün ve vakit için)
+// Yeni scores tablosuna göre verileri çek
 $stmt = $pdo->prepare("
-    SELECT date, prayer, points, is_jamaah
+    SELECT date, sabah, ogle, ikindi, aksam, yatsi
     FROM scores
     WHERE user_id = ? AND date BETWEEN ? AND ?
-    ORDER BY date DESC, FIELD(prayer, 'sabah','ogle','ikindi','aksam','yatsi')
+    ORDER BY date DESC
 ");
 $stmt->execute([$user_id, $month_start, $month_end]);
 $rows = $stmt->fetchAll();
@@ -25,10 +32,12 @@ $rows = $stmt->fetchAll();
 $days = [];
 foreach ($rows as $row) {
     $d = $row['date'];
-    if (!isset($days[$d])) $days[$d] = [];
-    $days[$d][$row['prayer']] = [
-        'points' => $row['points'],
-        'is_jamaah' => $row['is_jamaah']
+    $days[$d] = [
+        'sabah' => $row['sabah'],
+        'ogle' => $row['ogle'],
+        'ikindi' => $row['ikindi'],
+        'aksam' => $row['aksam'],
+        'yatsi' => $row['yatsi']
     ];
 }
 
@@ -41,7 +50,7 @@ $totals = [];
 foreach ($dates as $date) {
     $total = 0;
     foreach ($prayers as $p) {
-        if (isset($days[$date][$p])) $total += $days[$date][$p]['points'];
+        if (isset($days[$date][$p]) && $days[$date][$p] !== null) $total += $days[$date][$p];
     }
     $totals[$date] = $total;
 }
@@ -59,14 +68,15 @@ function trend_icon($today, $yesterday) {
 }
 
 // Liderler panosu (ilk 10) - grup adı da çekiliyor
-$stmt = $pdo->query("SELECT u.name, g.name as group_name, SUM(s.points) as total
-    FROM users u
-    JOIN groups g ON u.group_id = g.id
-    JOIN scores s ON u.id = s.user_id
-    WHERE s.date BETWEEN '$month_start' AND '$month_end'
-    GROUP BY u.id
-    ORDER BY total DESC
-    LIMIT 10");
+$stmt = $pdo->query("SELECT u.name, g.name as group_name, 
+            SUM(COALESCE(s.sabah,0) + COALESCE(s.ogle,0) + COALESCE(s.ikindi,0) + COALESCE(s.aksam,0) + COALESCE(s.yatsi,0)) as total
+            FROM users u
+            JOIN groups g ON u.group_id = g.id
+            JOIN scores s ON u.id = s.user_id
+            WHERE s.date BETWEEN '$month_start' AND '$month_end'
+            GROUP BY u.id
+            ORDER BY total DESC
+            LIMIT 10");
 $leaders = $stmt->fetchAll();
 
 // Grup renkleri
@@ -116,9 +126,9 @@ $user_info = $stmt->fetch();
     </style>
 </head>
 <body class="bg-light">
-<div class="container-fluid full-screen">
-    <div class="row justify-content-center w-100">
-        <div class="col-12 col-md-12 col-lg-10">
+    <div class="container-fluid full-screen">
+        <div class="row justify-content-center w-100">
+            <div class="col-12 col-md-6 col-lg-4">
             <?php $active_page = 'dashboard'; include 'includes/header.php'; ?>
             <h4 class="mb-3 text-center">Aylık Namaz Puan Tablosu</h4>
             <?php
@@ -152,10 +162,11 @@ $user_info = $stmt->fetch();
                                 <?php foreach ($prayers as $p): ?>
                                     <td>
                                         <?php
-                                        if (isset($days[$date][$p])) {
-                                            $pt = $days[$date][$p]['points'];
-                                            $is_jamaah = $days[$date][$p]['is_jamaah'];
-                                            if ($is_jamaah) {
+                                        if (isset($days[$date][$p]) && $days[$date][$p] !== null) {
+                                            $pt = $days[$date][$p];
+                                            // Cemaatle mi?
+                                            $base = $prayer_points[$p];
+                                            if ($pt == $base * 2) {
                                                 echo "<span class='cemaat'>$pt</span>";
                                             } else {
                                                 echo $pt;
@@ -215,16 +226,16 @@ $user_info = $stmt->fetch();
             $group = $stmt->fetch();
 
             if ($group) {
-                // Kaptanın grubundaki üyeleri ve puanlarını çek
+                // Kaptanın grubundaki üyeleri ve puanlarını çek (her üye bir kez, sadece kendi grubu)
                 $group_id = $group['id'];
                 $month_start = date('Y-m-01');
                 $month_end = date('Y-m-t');
                 $stmt = $pdo->prepare("
-                    SELECT u.name, SUM(s.points) as total
+                    SELECT u.name, SUM(COALESCE(s.sabah,0) + COALESCE(s.ogle,0) + COALESCE(s.ikindi,0) + COALESCE(s.aksam,0) + COALESCE(s.yatsi,0)) as total
                     FROM users u
                     LEFT JOIN scores s ON u.id = s.user_id AND s.date BETWEEN ? AND ?
                     WHERE u.group_id = ?
-                    GROUP BY u.id
+                    GROUP BY u.id, u.name
                     ORDER BY total DESC
                 ");
                 $stmt->execute([$month_start, $month_end, $group_id]);

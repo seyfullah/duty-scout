@@ -10,7 +10,9 @@ if (!isset($_SESSION['user_id'])) {
 // Gruplar arası sıralama
 $month_start = date('Y-m-01');
 $month_end = date('Y-m-t');
-$stmt = $pdo->query("SELECT g.name as group_name, SUM(s.points) as total
+
+$stmt = $pdo->query("SELECT g.name as group_name,
+    SUM(COALESCE(s.sabah,0)+COALESCE(s.ogle,0)+COALESCE(s.ikindi,0)+COALESCE(s.aksam,0)+COALESCE(s.yatsi,0)) as total
     FROM groups g
     JOIN users u ON g.id = u.group_id
     JOIN scores s ON u.id = s.user_id
@@ -20,19 +22,23 @@ $stmt = $pdo->query("SELECT g.name as group_name, SUM(s.points) as total
 $group_leaders = $stmt->fetchAll();
 
 // Grup içi sıralama
+
 $user_id = $_SESSION['user_id'];
-$stmt = $pdo->prepare("SELECT group_id FROM users WHERE id = ?");
+// Her zaman oturumdaki kullanıcının kendi grubunu çek
+$stmt = $pdo->prepare("SELECT group_id FROM users WHERE id = ? LIMIT 1");
 $stmt->execute([$user_id]);
 $group_id = $stmt->fetchColumn();
 
-$stmt = $pdo->prepare("SELECT u.name, SUM(s.points) as total
+
+$stmt = $pdo->prepare("SELECT u.name,
+    SUM(COALESCE(s.sabah,0)+COALESCE(s.ogle,0)+COALESCE(s.ikindi,0)+COALESCE(s.aksam,0)+COALESCE(s.yatsi,0)) as total
     FROM users u
-    JOIN scores s ON u.id = s.user_id
-    WHERE u.group_id = ? AND s.date BETWEEN ? AND ?
-    GROUP BY u.id
+    LEFT JOIN scores s ON u.id = s.user_id AND s.date BETWEEN ? AND ?
+    WHERE u.group_id = ?
+    GROUP BY u.id, u.name
     ORDER BY total DESC");
-$stmt->execute([$group_id, $month_start, $month_end]);
-$group_members = $stmt->fetchAll();
+    $stmt->execute([$month_start, $month_end, $group_id]);
+    $group_members = $stmt->fetchAll();
 
 // Kullanıcı bilgilerini çek
 $stmt = $pdo->prepare("SELECT u.name, g.name as group_name FROM users u LEFT JOIN groups g ON u.group_id = g.id WHERE u.id = ?");
@@ -53,9 +59,9 @@ $user_info = $stmt->fetch();
     </style>
 </head>
 <body class="bg-light">
-<div class="container-fluid full-screen">
-    <div class="row justify-content-center w-100">
-        <div class="col-12 col-md-10 col-lg-8">
+    <div class="container-fluid full-screen">
+        <div class="row justify-content-center w-100">
+            <div class="col-12 col-md-6 col-lg-4">
             <?php $active_page = 'group'; include 'includes/header.php'; ?>
             <h5 class="mb-3 text-center">Gruplar Arası Sıralama (Aylık)</h5>
             <div class="table-responsive mb-4">

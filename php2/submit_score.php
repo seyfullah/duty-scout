@@ -23,46 +23,47 @@ $prayer_points = [
     'yatsi' => 4
 ];
 
-// Çoklu namaz puan giriş kontrolü
+// Yeni tabloya uygun puan giriş kontrolü
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $date = $_POST['date'];
-    $success_count = 0;
-    $error_msgs = [];
-    if (isset($_POST['prayer']) && is_array($_POST['prayer'])) {
-        foreach ($_POST['prayer'] as $prayer => $value) {
-            if (!isset($prayer_points[$prayer])) continue; // Geçersiz namaz ismi
-            // Aynı gün ve vakit için daha önce puan girilmiş mi?
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM scores WHERE user_id = ? AND date = ? AND prayer = ?");
-            $stmt->execute([$user_id, $date, $prayer]);
-            $exists = $stmt->fetchColumn();
-            if ($exists) {
-                continue;
-            } elseif ($date !== $today && $date !== $yesterday) {
-                $error_msgs[] = ucfirst($prayer) . ": Sadece bugün ve dün için puan girebilirsiniz.";
-                continue;
-            } else {
-                $base_points = $prayer_points[$prayer];
-                $is_jamaah = ($value === 'jamaah') ? 1 : 0;
-                $points = $is_jamaah ? $base_points * 2 : $base_points;
-                $stmt = $pdo->prepare("INSERT INTO scores (user_id, date, prayer, points, is_jamaah) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$user_id, $date, $prayer, $points, $is_jamaah]);
-                $success_count++;
-            }
+    $fields = [];
+    foreach ($prayer_points as $prayer => $base_points) {
+        if (isset($_POST['prayer'][$prayer])) {
+            $value = $_POST['prayer'][$prayer];
+            $fields[$prayer] = ($value === 'jamaah') ? $base_points * 2 : $base_points;
+        } else {
+            $fields[$prayer] = null;
         }
     }
-    if ($success_count > 0) {
+    // Aynı gün için daha önce kayıt var mı?
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM scores WHERE user_id = ? AND date = ?");
+    $stmt->execute([$user_id, $date]);
+    $exists = $stmt->fetchColumn();
+    if ($exists) {
+        // Güncelle
+        $stmt = $pdo->prepare("UPDATE scores SET sabah=?, ogle=?, ikindi=?, aksam=?, yatsi=? WHERE user_id=? AND date=?");
+        $stmt->execute([
+            $fields['sabah'], $fields['ogle'], $fields['ikindi'], $fields['aksam'], $fields['yatsi'],
+            $user_id, $date
+        ]);
+        $success = "Namaz puanları güncellendi!";
+    } else {
+        // Ekle
+        $stmt = $pdo->prepare("INSERT INTO scores (user_id, date, sabah, ogle, ikindi, aksam, yatsi) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $user_id, $date,
+            $fields['sabah'], $fields['ogle'], $fields['ikindi'], $fields['aksam'], $fields['yatsi']
+        ]);
         $success = "Namaz puanları kaydedildi!";
-    }
-    if (!empty($error_msgs)) {
-        $error = implode('<br>', $error_msgs);
     }
 }
 
 // Günlük puanlar (bugün ve dün)
+// Yeni tabloya uygun günlük puanlar
 function get_day_scores($pdo, $user_id, $date) {
-    $stmt = $pdo->prepare("SELECT prayer, points, is_jamaah, date FROM scores WHERE user_id = ? AND date = ?");
+    $stmt = $pdo->prepare("SELECT sabah, ogle, ikindi, aksam, yatsi FROM scores WHERE user_id = ? AND date = ?");
     $stmt->execute([$user_id, $date]);
-    return $stmt->fetchAll();
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 $today_scores = get_day_scores($pdo, $user_id, $today);
 $yesterday_scores = get_day_scores($pdo, $user_id, $yesterday);
@@ -85,9 +86,9 @@ $user_info = $stmt->fetch();
     </style>
 </head>
 <body class="bg-light">
-<div class="container-fluid full-screen">
-    <div class="row justify-content-center w-100">
-        <div class="col-12 col-md-6 col-lg-4">
+    <div class="container-fluid full-screen">
+        <div class="row justify-content-center w-100">
+            <div class="col-12 col-md-6 col-lg-4">
             <?php $active_page = 'submit_score'; include 'includes/header.php'; ?>
             <h4 class="mb-3 text-center">Namaz Puanı Gir</h4>
             <?php if (isset($error)) echo "<div class='alert alert-danger'>$error</div>"; ?>
@@ -120,16 +121,13 @@ $user_info = $stmt->fetch();
                             <tbody>
                                 <?php
                                 // Seçili tarihteki puanlar
-                                $selected_scores_map = [];
-                                foreach ($selected_scores as $row) {
-                                    $selected_scores_map[$row['prayer']] = $row;
-                                }
                                 foreach ($prayer_points as $prayer => $point):
-                                    $checked_normal = (isset($selected_scores_map[$prayer]) && !$selected_scores_map[$prayer]['is_jamaah']) ? 'checked' : '';
-                                    $checked_jamaah = (isset($selected_scores_map[$prayer]) && $selected_scores_map[$prayer]['is_jamaah']) ? 'checked' : '';
+                                    $score = isset($selected_scores[$prayer]) ? $selected_scores[$prayer] : null;
+                                    $checked_normal = ($score == $point) ? 'checked' : '';
+                                    $checked_jamaah = ($score == $point * 2) ? 'checked' : '';
                                 ?>
                                 <tr>
-                                    <td><?= ucfirst($prayer) ?> (<?= $point ?> puan)</td>
+                                    <td><?= ucfirst($prayer) ?> (<?= $point ?>)</td>
                                     <td class="text-center">
                                         <input type="radio" name="prayer[<?= $prayer ?>]" value="normal" id="prayer_<?= $prayer ?>_normal" <?= $checked_normal ?> >
                                         <label for="prayer_<?= $prayer ?>_normal">Kılındı</label>

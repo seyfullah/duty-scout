@@ -2,7 +2,7 @@
 $host = 'localhost';
 $db   = 'pusulade_yigitler';
 $user = 'pusulade_yigitler';
-$pass = 'l8O^U.T[H9VF';
+$pass = 'l8O^U.T[';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -13,6 +13,8 @@ $options = [
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+    // Set Turkish collation for connection
+    $pdo->exec("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_turkish_ci'");
 } catch (\PDOException $e) {
     throw new \PDOException($e->getMessage(), (int)$e->getCode());
 }
