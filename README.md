@@ -1,4 +1,4 @@
-# My .NET and React Application
+Duty Scout Application
 
 This project is a full-stack application that combines a .NET backend with a React frontend. The backend serves weather forecast data, while the frontend displays this data to the user.
 
