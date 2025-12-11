@@ -43,8 +43,20 @@ foreach ($rows as $row) {
 
 // Tüm günler için toplam puan ve artış/azalış hesapla
 $prayers = ['sabah','ogle','ikindi','aksam','yatsi'];
-$dates = array_keys($days);
-usort($dates, fn($a, $b) => strcmp($b, $a)); // Azalan sırada
+
+
+// Tüm ayın günlerini oluştur, son gün olarak bugünü al
+$dates = [];
+$cur = strtotime($month_start);
+$today = date('Y-m-d');
+$end = strtotime($today) < strtotime($month_end) ? strtotime($today) : strtotime($month_end);
+while ($cur <= $end) {
+    $d = date('Y-m-d', $cur);
+    $dates[] = $d;
+    $cur = strtotime('+1 day', $cur);
+}
+// Tarihleri azalan sırada göster
+usort($dates, fn($a, $b) => strcmp($b, $a));
 
 $totals = [];
 foreach ($dates as $date) {
@@ -58,10 +70,11 @@ foreach ($dates as $date) {
 
 // Artış/azalış sütunu için (önceki güne göre)
 function trend_icon($today, $yesterday) {
+    // Tablo azalan tarihe göre, bir önceki gün aslında daha yeni
     if ($today > $yesterday) {
-        return "<span class='text-success fw-bold'><i class='bi bi-arrow-up'></i> +" . ($today-$yesterday) . "</span>";
+        return "<span class='text-success'><i class='bi bi-arrow-up'></i> +" . ($today - $yesterday) . "</span>";
     } elseif ($today < $yesterday) {
-        return "<span class='text-danger fw-bold'><i class='bi bi-arrow-down'></i> -" . ($yesterday-$today) . "</span>";
+        return "<span class='text-danger'><i class='bi bi-arrow-down'></i> -" . ($yesterday - $today) . "</span>";
     } else {
         return "<span class='text-secondary'><i class='bi bi-arrow-right'></i> 0</span>";
     }
@@ -121,7 +134,7 @@ $user_info = $stmt->fetch();
         body, html { height: 100%; }
         .full-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
         .table-responsive { max-height: 60vh; overflow-y: auto; }
-        .cemaat { font-size: 1.2em; font-weight: bold; color: #0dcaf0; }
+        .cemaat { font-weight: bold; color: #0dcaf0; }
         .table-head-small th { font-size: 0.95em; }
     </style>
 </head>
@@ -138,7 +151,6 @@ $user_info = $stmt->fetch();
                 <table class="table table-bordered table-striped align-middle text-center">
                     <thead class="table-light table-head-small">
                         <tr>
-                            <th>Gün</th>
                             <th>Tarih</th>
                             <th>S</th>
                             <th>Ö</th>
@@ -151,20 +163,25 @@ $user_info = $stmt->fetch();
                     </thead>
                     <tbody>
                         <?php
-                        $prev_total = null;
                         $total_days = count($dates);
+                        $trend_vals = [];
+                        for ($i = 0; $i < count($dates); $i++) {
+                            if ($i < count($dates) - 1) {
+                                $trend_vals[$dates[$i]] = trend_icon($totals[$dates[$i]], $totals[$dates[$i+1]]);
+                            } else {
+                                $trend_vals[$dates[$i]] = "<span class='text-muted'>-</span>";
+                            }
+                        }
                         foreach ($dates as $i => $date):
                             $hicri_gun = $total_days - $i;
                         ?>
                             <tr>
-                                <td><?= $hicri_gun ?></td>
                                 <td style="white-space:nowrap"><?= format_date_short($date) ?></td>
                                 <?php foreach ($prayers as $p): ?>
                                     <td>
                                         <?php
-                                        if (isset($days[$date][$p]) && $days[$date][$p] !== null) {
+                                        if (isset($days[$date][$p]) && $days[$date][$p] !== null && $days[$date][$p] != 0) {
                                             $pt = $days[$date][$p];
-                                            // Cemaatle mi?
                                             $base = $prayer_points[$p];
                                             if ($pt == $base * 2) {
                                                 echo "<span class='cemaat'>$pt</span>";
@@ -177,17 +194,8 @@ $user_info = $stmt->fetch();
                                         ?>
                                     </td>
                                 <?php endforeach; ?>
-                                <td class="fw-bold"><?= $totals[$date] ?></td>
-                                <td>
-                                    <?php
-                                    if ($prev_total !== null) {
-                                        echo trend_icon($totals[$date], $prev_total);
-                                    } else {
-                                        echo "<span class='text-muted'>-</span>";
-                                    }
-                                    $prev_total = $totals[$date];
-                                    ?>
-                                </td>
+                                <td><?= $totals[$date] ?></td>
+                                <td><?= $trend_vals[$date] ?></td>
                             </tr>
                         <?php endforeach;
                         if (empty($dates)): ?>
@@ -196,28 +204,55 @@ $user_info = $stmt->fetch();
                     </tbody>
                 </table>
             </div>
-            <hr>
-            <h5 class="mb-2">Liderler Panosu (Aylık)</h5>
-            <table class="table table-striped text-center">
-                <thead>
-                    <tr>
-                        <th>Sıra</th>
-                        <th>İsim</th>
-                        <th>Grup</th>
-                        <th>Puan</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($leaders as $i => $row): ?>
-                    <tr class="<?= group_color($row['group_name']) ?>">
-                        <td><?= $i+1 ?></td>
-                        <td><?= htmlspecialchars($row['name']) ?></td>
-                        <td><?= htmlspecialchars($row['group_name']) ?></td>
-                        <td><?= $row['total'] ?></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <!-- Artan tarih ve toplam puan çizgi grafiği -->
+            <div class="mb-4">
+                <canvas id="scoreChart"></canvas>
+            </div>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+            <?php 
+            $asc_dates = $dates;
+            usort($asc_dates, fn($a, $b) => strcmp($a, $b));
+            ?>
+            const chartLabels = [
+                <?php foreach ($asc_dates as $date): ?>
+                    "<?= format_date_short($date) ?>",
+                <?php endforeach; ?>
+            ];
+            const chartData = [
+                <?php foreach ($asc_dates as $date): ?>
+                    <?= $totals[$date] ?>,
+                <?php endforeach; ?>
+            ];
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Toplam Puan',
+                        data: chartData,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13,110,253,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#0d6efd',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Aylık Namaz Puanı Çizgi Grafiği' }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Tarih' } },
+                        y: { title: { display: true, text: 'Toplam Puan' }, beginAtZero: true }
+                    }
+                }
+            });
+            </script>
             <?php
             // Grup üyelerinin puanlarını göster (sadece kaptan görebilir)
             // Kullanıcı kaptan mı?

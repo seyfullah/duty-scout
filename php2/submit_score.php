@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user_id, $date
         ]);
         $success = "Namaz puanları güncellendi!";
+        echo '<meta http-equiv="refresh" content="2;url=dashboard.php">';
     } else {
         // Ekle
         $stmt = $pdo->prepare("INSERT INTO scores (user_id, date, sabah, ogle, ikindi, aksam, yatsi) VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -55,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fields['sabah'], $fields['ogle'], $fields['ikindi'], $fields['aksam'], $fields['yatsi']
         ]);
         $success = "Namaz puanları kaydedildi!";
+        echo '<meta http-equiv="refresh" content="2;url=dashboard.php">';
     }
 }
 

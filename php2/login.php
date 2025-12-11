@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch();
     if ($user && $password === $user['password']) { // Düz metin kontrolü
         $_SESSION['user_id'] = $user['id'];
-        header('Location: dashboard.php');
+        header('Location: submit_score.php');
         exit;
     } else {
         $error = "Telefon veya şifre yanlış!";
