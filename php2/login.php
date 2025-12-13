@@ -4,16 +4,16 @@ require 'includes/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = $_POST['phone'];
-    $password = $_POST['password'];
     $stmt = $pdo->prepare("SELECT * FROM users WHERE phone = ?");
     $stmt->execute([$phone]);
     $user = $stmt->fetch();
-    if ($user && $password === $user['password']) { // Düz metin kontrolü
+    if ($user) {
         $_SESSION['user_id'] = $user['id'];
-        header('Location: submit_score.php');
+        $_SESSION['is_admin'] = !empty($user['is_admin']);
+        header('Location: dashboard.php');
         exit;
     } else {
-        $error = "Telefon veya şifre yanlış!";
+        $error = "Telefon yanlış!";
     }
 }
 ?>
@@ -55,15 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="phone" class="form-label">Telefon</label>
                 <input type="text" class="form-control" id="phone" name="phone" required autofocus>
             </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Şifre</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
             <button type="submit" class="btn btn-primary w-100">Giriş</button>
         </form>
-        <div class="mt-3 text-center">
-            <a href="register.php" class="text-decoration-none">Kayıt Ol</a>
-        </div>
     </div>
 </div>
 </body>
