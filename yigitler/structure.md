@@ -3,7 +3,7 @@ php2/
 ├── index.php           # Ana sayfa ve yönlendirme
 ├── login.php           # Giriş/kayıt ekranı
 ├── dashboard.php       # Puan takibi ve liderler panosu
-├── group.php           # Grup yönetimi ve sıralama
+├── group_order.php           # Grup yönetimi ve sıralama
 ├── submit_score.php    # Puan girişi
 ├── assets/
 │   ├── css/

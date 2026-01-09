@@ -28,9 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $date = $_POST['date'];
     $fields = [];
     foreach ($prayer_points as $prayer => $base_points) {
-        if (isset($_POST['prayer'][$prayer])) {
-            $value = $_POST['prayer'][$prayer];
-            $fields[$prayer] = ($value === 'jamaah') ? $base_points * 2 : $base_points;
+        $normal = isset($_POST['prayer_' . $prayer . '_normal']);
+        $jamaah = isset($_POST['prayer_' . $prayer . '_jamaah']);
+        if ($jamaah) {
+            $fields[$prayer] = $base_points * 2;
+        } elseif ($normal) {
+            $fields[$prayer] = $base_points;
         } else {
             $fields[$prayer] = null;
         }
@@ -82,9 +85,21 @@ $user_info = $stmt->fetch();
     <title>Puan Gir</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         body, html { height: 100%; }
         .full-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        /* Tarih select kutusu için özel stil */
+        .custom-select-caret {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' fill=\'gray\' class=\'bi bi-caret-down-fill\' viewBox=\'0 0 16 16\'><path d=\'M7.247 11.14l-4.796-5.481C1.825 5.21 2.317 4.5 3.11 4.5h9.78c.793 0 1.285.71.66 1.159l-4.796 5.48a1 1 0 0 1-1.507 0z\'/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.2em;
+            padding-right: 2.5em;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -104,10 +119,10 @@ $user_info = $stmt->fetch();
             <form method="post" class="p-3 rounded shadow bg-white mb-4">
                 <div class="mb-3">
                     <label for="date" class="form-label">Tarih</label>
-                        <select name="date" class="form-control" id="date-select">
-                            <option value="<?= $today ?>" <?= ($selected_date == $today ? 'selected' : '') ?>><?= format_date($today) ?></option>
-                            <option value="<?= $yesterday ?>" <?= ($selected_date == $yesterday ? 'selected' : '') ?>><?= format_date($yesterday) ?></option>
-                        </select>
+                    <select name="date" class="form-control custom-select-caret" id="date-select">
+                        <option value="<?= $today ?>" <?= ($selected_date == $today ? 'selected' : '') ?>><?= format_date($today) ?></option>
+                        <option value="<?= $yesterday ?>" <?= ($selected_date == $yesterday ? 'selected' : '') ?>><?= format_date($yesterday) ?></option>
+                    </select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Namazlar</label>
@@ -131,11 +146,11 @@ $user_info = $stmt->fetch();
                                 <tr>
                                     <td><?= ucfirst($prayer) ?> (<?= $point ?>)</td>
                                     <td class="text-center">
-                                        <input type="radio" name="prayer[<?= $prayer ?>]" value="normal" id="prayer_<?= $prayer ?>_normal" <?= $checked_normal ?> >
+                                        <input type="checkbox" name="prayer_<?= $prayer ?>_normal" value="normal" id="prayer_<?= $prayer ?>_normal" <?= $checked_normal ?> >
                                         <label for="prayer_<?= $prayer ?>_normal">Kılındı</label>
                                     </td>
                                     <td class="text-center">
-                                        <input type="radio" name="prayer[<?= $prayer ?>]" value="jamaah" id="prayer_<?= $prayer ?>_jamaah" <?= $checked_jamaah ?> >
+                                        <input type="checkbox" name="prayer_<?= $prayer ?>_jamaah" value="jamaah" id="prayer_<?= $prayer ?>_jamaah" <?= $checked_jamaah ?> >
                                         <label for="prayer_<?= $prayer ?>_jamaah">Cemaatle</label>
                                     </td>
                                 </tr>
@@ -152,6 +167,18 @@ $user_info = $stmt->fetch();
         var url = new URL(window.location.href);
         url.searchParams.set('date', selected);
         window.location.href = url.toString();
+    });
+    // Aynı anda iki kutu seçilmesin
+    document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            var name = this.name.replace('_normal', '').replace('_jamaah', '');
+            var normal = document.getElementsByName(name + '_normal')[0];
+            var jamaah = document.getElementsByName(name + '_jamaah')[0];
+            if (this.checked) {
+                if (this.value === 'normal' && jamaah && jamaah.checked) jamaah.checked = false;
+                if (this.value === 'jamaah' && normal && normal.checked) normal.checked = false;
+            }
+        });
     });
     </script>
         </div>

@@ -65,6 +65,24 @@ if (isset($_POST['add_user'])) {
         header('Location: users_admin.php'); exit;
     }
 }
+
+// Grupta olmayan kullanıcıyı gruba ata
+if (isset($_POST['assign_to_group'])) {
+    $user_id = $_POST['assign_user_id'];
+    $group_id = $_POST['assign_group_id'];
+    // Grupta sorumlu hariç 4'ten fazla üye olamaz
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE group_id = ? AND id != (SELECT captain_id FROM groups WHERE id = ?)");
+    $stmt->execute([$group_id, $group_id]);
+    $count = $stmt->fetchColumn();
+    if ($count < 4) {
+        $stmt = $pdo->prepare("UPDATE users SET group_id = ? WHERE id = ?");
+        $stmt->execute([$group_id, $user_id]);
+        $success = 'Kullanıcı gruba atandı!';
+    } else {
+        $success = 'Bu grupta zaten 4 üye var!';
+    }
+    header('Location: users_admin.php'); exit;
+}
 // Kullanıcı güncelle
 if (isset($_POST['update_user'])) {
     $user_id = $_POST['user_id'];
@@ -88,27 +106,38 @@ if (isset($_POST['delete_user'])) {
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Yönetici Paneli</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-        <style>
-            .table-responsive { overflow-x: auto; }
-            @media (max-width: 600px) {
-                .table td, .table th { font-size: 0.95em; padding: 0.3rem 0.2rem; }
-                .ps-5 { padding-left: 0.7rem !important; }
-                .d-flex.gap-2 { gap: 0.3rem !important; }
-                input.form-control {
-                    font-size: 0.97em;
-                    padding: 0.25rem 0.4rem;
-                    min-width: 80px !important;
-                    max-width: 100%;
-                }
-                .container { padding-left: 2px !important; padding-right: 2px !important; }
-                h4.mb-3 { font-size: 1.1rem; }
-                .btn-sm { font-size: 0.95em; padding: 0.25rem 0.5rem; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Yönetici Paneli</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .table-responsive { overflow-x: auto; }
+        @media (max-width: 600px) {
+            .table td, .table th { font-size: 0.95em; padding: 0.3rem 0.2rem; }
+            .ps-5 { padding-left: 0.7rem !important; }
+            .d-flex.gap-2 { gap: 0.3rem !important; }
+            input.form-control {
+                font-size: 0.97em;
+                padding: 0.25rem 0.4rem;
+                min-width: 80px !important;
+                max-width: 100%;
             }
-        </style>
+            .container { padding-left: 2px !important; padding-right: 2px !important; }
+            h4.mb-3 { font-size: 1.1rem; }
+            .btn-sm { font-size: 0.95em; padding: 0.25rem 0.5rem; }
+        }
+        /* Mobilde input ve butonlar tam genişlikte olsun */
+        @media (max-width: 600px) {
+            .col-auto, .form-control, .btn, .table-responsive, .table {
+                width: 100% !important;
+                min-width: unset !important;
+                max-width: unset !important;
+            }
+            .row.g-2.align-items-end > .col-auto {
+                margin-bottom: 8px;
+            }
+        }
+    </style>
 </head>
 <body class="bg-light">
 <?php $active_page = 'users_admin'; include 'includes/header.php'; ?>
@@ -198,7 +227,7 @@ if (isset($_POST['delete_user'])) {
         <tr class="table-secondary"><td colspan="3"><b>Grupta Olmayanlar</b></td></tr>
         <?php foreach ($ungrouped as $u): ?>
         <tr>
-            <form method="post">
+            <form method="post" style="display:inline;">
                 <td></td>
                 <td>
                     <input type="text" name="user_name" value="<?= htmlspecialchars($u['name']) ?>" class="form-control d-inline w-auto" style="min-width:120px;">
@@ -206,11 +235,25 @@ if (isset($_POST['delete_user'])) {
                     <input type="hidden" name="user_group_id" value="">
                     <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
                 </td>
-                <td>
+                <td style="display:flex; flex-wrap:wrap; gap:4px;">
                     <button type="submit" name="update_user" class="btn btn-sm btn-success">Kaydet</button>
                     <button type="submit" name="delete_user" value="<?= $u['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Kullanıcı silinsin mi?')">Sil</button>
                 </td>
             </form>
+            <!-- Grupta olmayan kullanıcıyı gruba ata -->
+            <?php foreach ($groups as $g):
+                // Sorumlu hariç grup üye sayısı
+                $group_member_count = 0;
+                foreach ($users as $gu) {
+                    if ($gu['group_id'] == $g['id'] && $gu['id'] != $g['captain_id']) $group_member_count++;
+                }
+                if ($group_member_count < 4): ?>
+                <form method="post" style="display:inline;">
+                    <input type="hidden" name="assign_user_id" value="<?= $u['id'] ?>">
+                    <input type="hidden" name="assign_group_id" value="<?= $g['id'] ?>">
+                    <button type="submit" name="assign_to_group" class="btn btn-sm btn-primary" style="margin-top:2px;">→ <?= htmlspecialchars($g['name']) ?></button>
+                </form>
+            <?php endif; endforeach; ?>
         </tr>
         <?php endforeach; ?>
         <!-- Yeni kullanıcı ekle (grupsuz) -->

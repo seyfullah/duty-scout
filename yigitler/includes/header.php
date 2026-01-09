@@ -29,7 +29,7 @@ $active = isset($active_page) ? $active_page : '';
             <?php endif; ?>
               <a href="dashboard.php" class="btn btn-outline-primary btn-sm<?= $active=='dashboard' ? ' fw-bold text-dark border-dark' : '' ?>">Ana Sayfa</a>
             <a href="submit_score.php" class="btn btn-outline-success btn-sm<?= $active=='submit_score' ? ' fw-bold text-dark border-dark' : '' ?>">Puan Gir</a>
-            <a href="group.php" class="btn btn-outline-secondary btn-sm<?= $active=='group' ? ' fw-bold text-dark border-dark' : '' ?>">Grup Sıralama</a>
+            <a href="group_order.php" class="btn btn-outline-secondary btn-sm<?= $active=='group' ? ' fw-bold text-dark border-dark' : '' ?>">Grup Sıralama</a>
             <a href="leaders.php" class="btn btn-outline-warning btn-sm<?= $active=='leaders' ? ' fw-bold text-dark border-dark' : '' ?>">Liderler Panosu</a>
             <a href="logout.php" class="btn btn-outline-danger btn-sm">Çıkış</a>
         </div>
