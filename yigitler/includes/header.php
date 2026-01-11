@@ -14,6 +14,15 @@ if (!isset($user_info)) {
     }
 }
 $active = isset($active_page) ? $active_page : '';
+
+function format_phone($phone)
+{
+    $digits = preg_replace('/\D/', '', $phone);
+    if (strlen($digits) === 10) {
+        return preg_replace('/(\d{3})(\d{3})(\d{2})(\d{2})/', '$1 $2 $3 $4', $digits);
+    }
+    return $phone;
+}
 ?>
 <nav class="mb-3">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -24,14 +33,20 @@ $active = isset($active_page) ? $active_page : '';
             <?php endif; ?>
         </div>
         <div class="d-flex gap-2">
-            <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
-                <a href="users_admin.php" class="btn btn-outline-dark btn-sm<?= $active=='users_admin' ? ' fw-bold text-dark border-dark' : '' ?>">Yönetici</a>
-            <?php endif; ?>
-              <a href="dashboard.php" class="btn btn-outline-primary btn-sm<?= $active=='dashboard' ? ' fw-bold text-dark border-dark' : '' ?>">Ana Sayfa</a>
-            <a href="submit_score.php" class="btn btn-outline-success btn-sm<?= $active=='submit_score' ? ' fw-bold text-dark border-dark' : '' ?>">Puan Gir</a>
-            <a href="group_order.php" class="btn btn-outline-secondary btn-sm<?= $active=='group' ? ' fw-bold text-dark border-dark' : '' ?>">Grup Sıralama</a>
-            <a href="leaders.php" class="btn btn-outline-warning btn-sm<?= $active=='leaders' ? ' fw-bold text-dark border-dark' : '' ?>">Liderler Panosu</a>
-            <a href="logout.php" class="btn btn-outline-danger btn-sm">Çıkış</a>
+            <a href="/yigitler/dashboard.php" class="btn btn-outline-primary btn-sm<?= $active == 'dashboard' ? ' fw-bold text-dark border-dark' : '' ?>">Ana Sayfa</a>
+            <a href="/yigitler/submit_score.php" class="btn btn-outline-success btn-sm<?= $active == 'submit_score' ? ' fw-bold text-dark border-dark' : '' ?>">Puan Gir</a>
+            <a href="/yigitler/group_order.php" class="btn btn-outline-secondary btn-sm<?= $active == 'group' ? ' fw-bold text-dark border-dark' : '' ?>">Grup Sıralama</a>
+            <a href="/yigitler/leaders.php" class="btn btn-outline-warning btn-sm<?= $active == 'leaders' ? ' fw-bold text-dark border-dark' : '' ?>">Liderler Panosu</a>
+            <a href="/yigitler/logout.php" class="btn btn-outline-danger btn-sm">Çıkış</a>
         </div>
+        <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
+            <div class="d-flex gap-2">
+                <a href="/yigitler/admin/users.php" class="btn btn-outline-primary btn-sm<?= $active == 'users' ? ' fw-bold text-dark border-dark' : '' ?>">Kullanıcılar</a>
+                <a href="/yigitler/admin/groups.php" class="btn btn-outline-success btn-sm<?= $active == 'groups' ? ' fw-bold text-dark border-dark' : '' ?>">Gruplar</a>
+                <a href="/yigitler/admin/schools.php" class="btn btn-outline-success btn-sm<?= $active == 'schools' ? ' fw-bold text-dark border-dark' : '' ?>">Okullar</a>
+                <a href="/yigitler/admin/ngos.php" class="btn btn-outline-success btn-sm<?= $active == 'ngos' ? ' fw-bold text-dark border-dark' : '' ?>">STK'lar</a>
+                <a href="/yigitler/admin/group_users.php" class="btn btn-outline-secondary btn-sm<?= $active == 'group_users' ? ' fw-bold text-dark border-dark' : '' ?>">Grup Kullanıcıları</a>
+            </div>
+        <?php endif; ?>
     </div>
 </nav>
