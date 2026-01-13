@@ -24,6 +24,14 @@ function format_phone($phone)
     return $phone;
 }
 ?>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-W1XMEGK62C"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-W1XMEGK62C');
+</script>
 <nav class="mb-3">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div>
